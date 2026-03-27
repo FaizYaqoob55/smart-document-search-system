@@ -14,4 +14,4 @@ def generate_embedding_batch(texts: list):
 def generate_embedding(text: str):
     return generate_embeddings([text])[0]
 
-
+ 

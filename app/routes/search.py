@@ -14,9 +14,9 @@ def semantic_search(query: str = Query(...), db: Session = Depends(get_db)):
                     dc.chunk_text,
                     dc.document_id,
                     dc.chunk_index,
-                    1-(dc.embedding <=> :query_embedding) AS similarity
+                    1-(dc.embedding <=> CAST(:query_embedding AS vector)) AS similarity
                FROM document_chunks dc
-               ORDER BY dc.embedding <=> :query_embedding
+               ORDER BY dc.embedding <=> CAST(:query_embedding AS vector)
                LIMIT 10
 
     """)

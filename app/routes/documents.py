@@ -13,7 +13,7 @@ from app.models.document_chunks import DocumentChunk
 from app.services.embeddings import generate_embedding_batch
 
 router = APIRouter()
-
+ 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
