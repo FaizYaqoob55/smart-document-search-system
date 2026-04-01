@@ -3,6 +3,7 @@ import os
 import shutil
 
 from requests import Session
+from sqlalchemy import text, func
 from app.database import SessionLocal, get_db
 from app.services.text_extractor import (
     extract_text_from_pdf,
@@ -48,7 +49,8 @@ def upload_document(file: UploadFile = File(...)):
         document=Document(
             title=filename,
             content=text,
-            file_type=ext
+            file_type=ext,
+            search_vector=func.to_tsvector('english', text)
         )
         db.add(document)
         db.commit()
@@ -104,3 +106,71 @@ def get_document_chunks(id:int,db:Session=Depends(get_db)):
         for chunk in chunks
     ]
 
+
+
+
+
+
+@router.get("/{id}/similar")
+def similar_documents(id:int,db:Session=Depends(get_db)):
+    avg_embedding_query=text("""
+        SELECT AVG(embedding) as avg_embedding
+        FROM document_chunks
+        WHERE document_id = :doc_id
+    """)
+    result=db.execute(avg_embedding_query,{"doc_id":id}).fetchone()
+    if not result or not result.avg_embedding:
+        raise HTTPException(status_code=404, detail="Document or embedding not found")
+    avg_embedding=result.avg_embedding
+    similarity_query=text("""
+        SELECT d.id, d.title, d.content, 
+        (SELECT AVG((embedding <-> :avg_embedding)) FROM document_chunks WHERE document_id = d.id) as similarity
+        FROM documents d
+        WHERE d.id != :doc_id
+        ORDER BY similarity ASC
+        LIMIT 5
+    """)
+    results=db.execute(similarity_query,{
+        "avg_embedding":avg_embedding,
+        "doc_id":id}).fetchall()
+    return [
+        {
+            "document_id": row.id,
+            "title": row.title,
+            "similarity": float(row.similarity)
+        }
+        for row in results
+    ]
+
+
+
+@router.delete("/{document_id}")
+def delete_document(document_id:int,db:Session=Depends(get_db)):
+    document=db.query(Document).filter(Document.id==document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    db.delete(document)
+    db.commit()
+    return {"message":"Document deleted successfully."}
+
+
+
+@router.put("/{document_id}")
+def update_document(document_id:int, content:str=None, db:Session=Depends(get_db)):
+    document=db.query(Document).filter(Document.id==document_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    document.content=content
+    chunks=chunks_text(content)
+    embeddings=generate_embedding_batch(chunks)
+    db.query(DocumentChunk).filter(DocumentChunk.document_id==document_id).delete()
+    for i,chunk in enumerate(chunks):
+        chunk_obj=DocumentChunk(
+            document_id=document.id,
+            chunk_text=chunk,
+            chunk_index=i,
+            embedding=embeddings[i]
+        )
+        db.add(chunk_obj)
+    db.commit()
+    return {"message":"Document updated successfully."}
