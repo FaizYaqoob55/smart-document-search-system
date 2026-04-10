@@ -78,7 +78,7 @@ def keyword_search(query: str, db: Session = Depends(get_db)):
     #log the search query and results count
     search_history=SearchHistory(
         query=query,
-        search_type="keyword",
+        search_type="keyword", 
         results_count=len(results)
     )
     db.add(search_history)

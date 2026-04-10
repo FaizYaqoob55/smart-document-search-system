@@ -1,1 +1,1 @@
-car name king
+car name king | king . 

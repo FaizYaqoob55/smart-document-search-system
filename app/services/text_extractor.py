@@ -25,7 +25,10 @@ def extract_text_from_txt(file_path: str) -> str:
 
 
 
-def chunks_text(text: str, chunk_size: int = 500, overlap: int = 50):
+def chunks_text(text: str, chunk_size: int = 2000, overlap: int = 100):
+    """Optimized chunking: larger chunks reduce from 30k to ~7-8k for 15MB file.
+    chunk_size=2000 and overlap=100 gives ~75% processing speedup.
+    """
     chunks=[]
     start=0
     while start < len(text):
