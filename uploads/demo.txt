@@ -1,0 +1,44 @@
+Password Reset Guide
+
+If you forgot your password, you can reset it easily.
+
+Steps:
+1. Go to login page
+2. Click on "Forgot Password"
+3. Enter your email address
+4. Check your email for reset link
+5. Create a new password
+
+Make sure your password is strong and secure.
+
+---
+
+Account Login Issue
+
+If you are facing login issues, check the following:
+
+- Make sure your email is correct
+- Check if Caps Lock is on
+- Try resetting your password
+- Clear browser cache
+
+---
+
+Email Setup Instructions
+
+To setup your email:
+
+1. Open settings
+2. Add new email account
+3. Enter your credentials
+4. Configure IMAP/SMTP settings
+
+---
+
+System Performance Tips
+
+If system is slow:
+
+- Restart application
+- Clear temporary files
+- Check internet connection

@@ -1,0 +1,169 @@
+TEAMFLUX – COMPLETE PROJECT DOCUMENTATION
+:pushpin: Overview
+TeamFlux is a backend-based team and project management system designed to manage teams, projects, growth sessions, technical debt, and workflows efficiently. It provides secure access using Role-Based Access Control (RBAC) and enables structured collaboration within teams.
+:dart: Objectives
+Manage teams and projects efficiently
+Track employee growth sessions and performance
+Handle technical debt and system improvements
+Provide secure collaboration between team members
+Deliver structured and scalable backend APIs
+:hammer_and_wrench: Tech Stack
+FastAPI
+PostgreSQL
+SQLAlchemy
+JWT Authentication
+Redis (optional for caching)
+:gear: COMPLETE SYSTEM FLOW (VERY IMPORTANT)
+:repeat: End-to-End Flow
+User registers/logs in (JWT token is generated)
+User is assigned to a team
+Each team contains multiple projects
+Inside each project:
+Growth Sessions are conducted
+Notes are added
+Action Items are assigned
+Technical Debt is tracked
+Comments and Mentions are used for collaboration
+Deprecation plans are managed
+Dashboard displays overall summary
+:open_file_folder: CORE MODULES
+:closed_lock_with_key: 1. Authentication
+Login
+Register
+JWT Token
+Token Refresh
+:point_right: Ensures secure access
+:busts_in_silhouette: 2. Teams & Projects
+Create teams
+Assign members
+Create projects
+Project-based access control
+:point_right: Users can only access their team data
+:chart_with_upwards_trend: 3. Growth Sessions
+One-on-one sessions between manager and employee
+Performance discussions
+Feedback tracking
+:memo: 4. Notes (IMPORTANT)
+Notes are attached to growth sessions
+Contains sensitive/confidential information
+Access Control:
+Admin/Manager → full access
+User → only their own notes
+:point_right: Maintains privacy
+:white_check_mark: 5. Action Items
+Tasks assigned to users
+Users can only complete tasks assigned to them
+:point_right: Ensures accountability
+:warning: 6. Technical Debt
+Tracks code issues and improvements
+Features:
+Create debt
+Update status (Draft → Critical → Resolved)
+Add comments
+Access:
+Member → create & comment
+Lead/Admin → update status
+:speech_balloon: 7. Comments & Mentions (IMPORTANT)
+Comments can be added in multiple modules
+Mentions:
+Uses @user tagging
+:point_right: System checks:
+If mentioned user belongs to the project
+:heavy_check_mark: If yes → notification sent
+:x: If not → ignored
+:spiral_calendar_pad: 8. Deprecation (IMPORTANT)
+Used to manage removal of old features
+Includes:
+Timeline
+Milestones
+Migration notes
+Access:
+Admin/Lead → create
+Member → view
+:point_right: Prevents accidental system issues
+:bar_chart: 9. Dashboard
+Total projects
+Technical debt count
+Growth sessions
+Activity summary
+:closed_lock_with_key: RBAC (Role-Based Access Control)
+Roles:
+:crown: Admin
+Full system control
+:office_worker: Team Lead
+Manages team and projects
+:male-technologist: Member
+Limited access
+Works on assigned tasks
+:satellite_antenna: API MODULES
+Authentication APIs
+Team APIs
+Project APIs
+Growth Session APIs
+Notes APIs
+Action Items APIs
+Technical Debt APIs
+Comments APIs
+Deprecation APIs
+Dashboard APIs
+:bar_chart: DATABASE STRUCTURE
+users
+teams
+projects
+growth_sessions
+notes
+action_items
+technical_debt
+comments
+deprecations
+:warning: SECURITY
+JWT Authentication
+Role-based access control
+Input validation
+SQL injection prevention
+Secure API handling
+:zap: PERFORMANCE OPTIMIZATION
+Database indexing
+Optimized queries
+Pagination
+Lazy loading
+Caching
+:test_tube: TESTING
+All CRUD APIs tested
+Filters and search verified
+Authentication tested
+Edge cases handled
+:rocket: SETUP GUIDE (IMPORTANT)
+1. Clone Repository
+Bash
+git clone <repo-link>
+cd teamflux
+2. Install Dependencies
+Bash
+pip install -r requirements.txt
+3. Setup Database
+Install PostgreSQL and create database:
+SQL
+CREATE DATABASE teamflux;
+4. Run Migrations
+Bash
+alembic upgrade head
+5. Run Server
+Bash
+uvicorn app.main:app --reload
+6. Open Swagger Docs
+Plain text
+http://localhost:8000/docs
+:microphone: DEMO FLOW
+Login
+Create team
+Create project
+Add growth session
+Add notes
+Assign action items
+Create technical debt
+Add comments & mentions
+Create deprecation
+Show dashboard
+:dart: CONCLUSION
+TeamFlux is a complete and scalable backend system for managing teams, projects, and workflows. It uses RBAC, structured APIs, and real-world features, making it suitable for enterprise-level applications.

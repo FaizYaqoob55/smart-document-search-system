@@ -23,7 +23,7 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.database import Base
-from app.models import document, document_chunks  # noqa: F401
+from app.models import document, document_chunks, search_history  # noqa: F401
 
 target_metadata = Base.metadata
 
