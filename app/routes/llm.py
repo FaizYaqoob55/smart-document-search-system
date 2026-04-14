@@ -14,5 +14,5 @@ def get_llm_message(question: str):
 
 
 @router.post("/rag/ask")
-def rag_ask(question:str, db: Session = Depends(get_db), document_id:int=None):
-   return ask_question(question, db)
+def rag_ask(question:str,document_id:int=None, db: Session = Depends(get_db)):
+   return ask_question(question, db,document_id=document_id)

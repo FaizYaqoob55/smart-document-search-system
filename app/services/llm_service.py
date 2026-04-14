@@ -20,9 +20,12 @@ def generate_message(prompt:str):
     return response.choices[0].message.content
 
 
-def ask_question(query:str,db:Session,top_k=2):
+def ask_question(query:str,db:Session,top_k=2, document_id=None):
     query_embedding=generate_embedding(query)
-    chunks_with_distance = db.query(DocumentChunk, DocumentChunk.embedding.cosine_distance(query_embedding).label('distance')).order_by(DocumentChunk.embedding.cosine_distance(query_embedding)).limit(top_k).all()
+    base_query = db.query(DocumentChunk, DocumentChunk.embedding.cosine_distance(query_embedding).label('distance'))
+    if document_id is not None:
+        base_query = base_query.filter(DocumentChunk.document_id == document_id)
+    chunks_with_distance = base_query.order_by(DocumentChunk.embedding.cosine_distance(query_embedding)).limit(top_k).all()
     chunks = [chunk for chunk, _ in chunks_with_distance]
     distances = [distance for _, distance in chunks_with_distance]
     best_score = distances[0] if distances else 1.0
