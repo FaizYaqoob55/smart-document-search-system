@@ -12,12 +12,13 @@ def multipart_parser_init(self, headers, stream, *, max_files=1000, max_fields=1
 
 MultiPartParser.__init__ = multipart_parser_init
 
-from app.routes import analytics, documents, search
+from app.routes import analytics, documents, search,llm
 app = FastAPI(title="Smart Document Search System")
 
 app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 app.include_router(search.router, prefix="/search", tags=["Search"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+app.include_router(llm.router,prefix="/llm",tags=["LLM"])
 
 
 @app.get("/")
