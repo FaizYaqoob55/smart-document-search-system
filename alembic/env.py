@@ -18,12 +18,34 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from pathlib import Path
 import sys
+import os
+
+# Load .env file
+_root = Path(__file__).resolve().parents[1]
+
+def _load_dotenv(dotenv_path: Path):
+    if not dotenv_path.exists():
+        return
+    with dotenv_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+_load_dotenv(_root / ".env")
 
 # Make sure the project root is on the path and app package is importable
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.database import Base
-from app.models import document, document_chunks, search_history  # noqa: F401
+from app.models import document, document_chunks, search_history, qa_history  # noqa: F401
 
 target_metadata = Base.metadata
 
@@ -64,6 +86,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Set the database URL from environment
+    config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL"))
+    
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
