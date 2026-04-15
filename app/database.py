@@ -1,4 +1,6 @@
+from fastapi import HTTPException
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import declarative_base, sessionmaker
 from .env import settings
 
@@ -13,6 +15,14 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except OperationalError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Database connection failed. Check DATABASE_URL and network access. "
+                f"Original error: {e}"
+            ),
+        )
     finally:
         try:
             db.close()

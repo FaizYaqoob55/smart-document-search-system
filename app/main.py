@@ -18,7 +18,7 @@ app = FastAPI(title="Smart Document Search System")
 app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 app.include_router(search.router, prefix="/search", tags=["Search"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
-app.include_router(llm.router,prefix="/llm",tags=["LLM"])
+app.include_router(llm.router,prefix="/llm",tags=["LLM"]) 
 
 
 @app.get("/")
