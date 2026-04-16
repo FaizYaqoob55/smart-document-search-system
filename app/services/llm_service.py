@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, Float
 from app.models.qa_history import QaHistory
@@ -8,6 +7,7 @@ from app.models.document_chunks import DocumentChunk
 from app.models.document import Document
 from groq import Groq
 from app.env import settings
+from app.services.prompt_templates import factual_prompt, summary_prompt, comparison_prompt
 
 client = Groq(api_key=settings.GROQ_API_KEY)
 
@@ -22,37 +22,34 @@ def generate_message(prompt: str):
     print("LLM Response Time :", end_time - start_time)
     return response.choices[0].message.content
 
+def stream_response(prompt: str):
+    stream = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": prompt}],
+        stream=True
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
 
 
 
-# def generate_message(prompt: str):
-#     """LLM se jawab mangwane ka function"""
-#     start_time = time.time()
-    
-#     payload = {
-#         "inputs": prompt,
-#         "parameters": {
-#             "max_new_tokens": 250, 
-#             "temperature": 0.3, # Quality ke liye temperature kam rakha hai
-#             "return_full_text": False 
-#         }
-#     }
 
-#     try:
-#         response = client.chat.completions.create(
-#             model='llama-3.1-8b-instant',
-#             messages=[{"role": "user", "content": prompt}]
-#         )
-#         result = response.choices[0].message.content
-        
-#         if isinstance(result, str):
-#             return result
-#         elif isinstance(result, dict) and "error" in result:
-#             return f"AI Error: {result.get('error')}"
-#         return "Unexpected response format."
+def detect_query_type(query: str):
+    query = query.lower()
 
-#     except Exception as e:
-#         return f"Connection Error: {str(e)}"
+    if "compare" in query or "difference" in query:
+        return "comparison"
+
+    elif "summarize" in query or "summary" in query:
+        return "summary"
+
+    else:
+        return "factual"
+
+
+
 
 def ask_question(query: str, db: Session, top_k: int = 2, document_id: int = None):
     """Database se search karke AI jawab dene ka main function"""
@@ -117,18 +114,16 @@ def ask_question(query: str, db: Session, top_k: int = 2, document_id: int = Non
     
     context = "\n\n".join(context_list)
 
-    # 5. Prompt Taiyar Karna
-    prompt = f"""Use the following context to answer the question. 
-If you don't know, say "I don't know". 
-Keep it professional.
+    query_type = detect_query_type(query)
 
-Context:
-{context}
+    if query_type == "comparison":
+        prompt = comparison_prompt(context, query)
 
-Question:
-{query}
+    elif query_type == "summary":
+        prompt = summary_prompt(context, query)
 
-Answer:"""
+    else:
+        prompt = factual_prompt(context, query)
 
     answer = generate_message(prompt)
 
