@@ -1,6 +1,7 @@
 import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func, Float
+from sqlalchemy import Float
 from app.models.qa_history import QaHistory
 from app.services.embeddings import generate_embedding
 from app.models.document_chunks import DocumentChunk

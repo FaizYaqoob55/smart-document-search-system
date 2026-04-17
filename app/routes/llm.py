@@ -7,6 +7,7 @@ from app.models.qa_history import QaHistory
 from app.services.prompt_templates import comparison_prompt, factual_prompt, summary_prompt
 from app.models.document_chunks import DocumentChunk
 from app.models.document import Document
+from sqlalchemy import Float
 router = APIRouter()
 
 @router.post("/llm/ask")
