@@ -51,4 +51,18 @@ def chat(session_id: str, query: str, db: Session = Depends(db.get_db)):
         "citations": rag_result.get("citations", [])
     }
 
+@router.get("/chat/sessions/{session_id}/history")
+def get_chat_history(session_id: str):
+    history = get_history(session_id)
+    if history is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"history": history}
+  
 
+
+
+
+@router.delete("/chat/sessions/{session_id}")
+def delete_chat_session(session_id: str):
+    r.delete(f"session:{session_id}")
+    return {"detail": "Session deleted"}
