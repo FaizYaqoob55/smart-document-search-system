@@ -98,7 +98,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# /mkdocs.yml    # Uncomment to ignore mkdocs.yml
 
 # mypy
 .mypy_cache/
@@ -111,6 +111,9 @@ dmypy.json
 # IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS generated files
 .DS_Store
@@ -120,3 +123,62 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+nul
+
+# Project specific ignores
+# Uploaded files and documents
+uploads/
+*.pdf
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+
+# OCR and image processing binaries
+poppler/
+tesseract/
+
+# Redis binaries and configs (if not needed in repo)
+redis-*.exe
+redis-*.pdb
+redis.windows*.conf
+Redis on Windows*.docx
+Windows Service Documentation.docx
+EventLog.dll
+
+# Test files
+test.png
+test.*
+*_test.*
+test_*
+
+# Database files (if using SQLite for development)
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Cache directories
+.cache/
+__pycache__/
+*.pyc
+
+# Alembic versions (if you want to ignore generated migrations)
+# alembic/versions/*.py
+
+# Local development files
+.env.local
+.env.development
+.env.production
