@@ -12,6 +12,7 @@ class Document(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     file_type = Column(String, nullable=True)
     search_vector = Column(TSVECTOR, nullable=True)
+    source_url = Column(String, nullable=True)
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete")
 
 

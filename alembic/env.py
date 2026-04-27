@@ -44,8 +44,8 @@ _load_dotenv(_root / ".env")
 # Make sure the project root is on the path and app package is importable
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from app.database import Base
-from app.models import document, document_chunks, search_history, qa_history  # noqa: F401
+from app.database import Base, SQLALCHEMY_DATABASE_URL
+from app.models import document, document_chunks, search_history, qa_history, url_sources  # noqa: F401
 
 target_metadata = Base.metadata
 
@@ -87,7 +87,7 @@ def run_migrations_online() -> None:
 
     """
     # Set the database URL from environment
-    config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL"))
+    config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)
     
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
