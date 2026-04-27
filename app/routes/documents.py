@@ -14,6 +14,8 @@ from app.models.document import Document
 from app.models.document_chunks import DocumentChunk
 from app.services.embeddings import generate_embedding_batch
 import threading
+from app.services.ocr_services import is_scanned_pdf,extract_text_from_scanned_pdf, extract_text_from_image, extract_text_from_tiff
+
 
 router = APIRouter()
  
@@ -29,15 +31,33 @@ def process_full_document_background(doc_id: int, file_path: str, ext: str):
          # 1. Text Extraction (Wait thora sa taake file write complete ho)
         time.sleep(1) 
         if ext == "pdf":
-            text = extract_text_from_pdf(file_path)
+            if is_scanned_pdf(file_path):
+                text = extract_text_from_scanned_pdf(file_path)
+                avg_conf = 75  # optional (agar calculate nahi kar rahe)
+            else:
+                text = extract_text_from_pdf(file_path)
+                avg_conf = None
+        elif ext in ["jpg", "jpeg", "png", "bmp"]:
+            text, avg_conf = extract_text_from_image(file_path)
+        elif ext == "tiff":
+            text, avg_conf = extract_text_from_tiff(file_path)
         elif ext == "docx":
             text = extract_text_from_docx(file_path)
+            avg_conf = None
         else:
             text = extract_text_from_txt(file_path)
+            avg_conf = None
 
         if not text or not text.strip():
             print(f"✗ Error: Document {doc_id} extracted text is empty.")
             return
+
+
+
+
+
+
+
 
         # 2. Document Table Update (Original Text & Search Vector)
         doc = db.query(Document).filter(Document.id == doc_id).first()
@@ -57,7 +77,8 @@ def process_full_document_background(doc_id: int, file_path: str, ext: str):
                 "document_id": doc_id,
                 "chunk_text": c,
                 "chunk_index": i,
-                "embedding": embeddings[i],
+                "embedding": embeddings[i]
+                # TODO: Add ocr_confidence and image_path once migration is applied
             }
             for i, c in enumerate(chunks)
         ]
@@ -82,7 +103,7 @@ from supabase import create_client, Client
 
 # Supabase configuration
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_SECRET_KEY") # Use Secret Key for backend
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @router.post("/upload/")
@@ -91,27 +112,14 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
         filename = file.filename
         ext = filename.split(".")[-1].lower()
         
-        if ext not in ["pdf", "docx", "txt"]:
-            raise HTTPException(status_code=400, detail="Only PDF, DOCX, TXT allowed.")
+        
+        if ext not in ["pdf", "docx", "txt","jpg","jpeg","png", "tiff"]:
+            raise HTTPException(status_code=400, detail="Only PDF, DOCX, TXT, JPG, JPEG, PNG, TIFF allowed.")
 
         # 1. Read file content for Supabase
         file_content = await file.read()
         
-        # 2. Upload to Supabase Storage (Bucket name: 'document')
-        # Path format: 'filename' or 'folder/filename'
-        storage_path = f"{int(time.time())}_{filename}" # Unique name taake override na ho
         
-        try:
-            supabase.storage.from_('document').upload(
-                path=storage_path,
-                file=file_content,
-                file_options={"content-type": file.content_type}
-            )
-            # Public URL hasil karein (Optional, agar DB mein save karna ho)
-            file_url = supabase.storage.from_('document').get_public_url(storage_path)
-        except Exception as storage_err:
-            print(f"❌ Supabase Storage Error: {str(storage_err)}")
-            # Agar storage fail ho tab bhi hum local process jari rakh sakte hain ya error de sakte hain
         
         # 3. Local Copy (Background worker ke liye asaan hai)
         file_path = os.path.abspath(os.path.join(UPLOAD_DIR, filename))
@@ -140,13 +148,73 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
         return {
             "message": "✓ Uploaded to Supabase & Local! AI processing started.",
             "document_id": new_doc.id,
-            "supabase_url": file_url if 'file_url' in locals() else None
+                "filename": filename,
+                "file_type": ext
+            
         }
 
     except Exception as e:
         db.rollback()
         print(f"❌ Upload Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+
+
+
+@router.post("/documents/upload/image")
+async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db)):
+
+    ext = file.filename.split(".")[-1].lower()
+
+    if ext not in ["jpg", "jpeg", "png", "tiff", "bmp"]:
+        raise HTTPException(status_code=400, detail="Invalid image format")
+
+    file_path = f"uploads/{file.filename}"
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+    if ext == "tiff":
+            text, avg_conf = extract_text_from_tiff(file_path)
+    else:
+        text, avg_conf = extract_text_from_image(file_path)
+        
+
+
+    # Need to save Document first to avoid IntegrityError (NotNullViolation)
+    new_doc = Document(
+        title=file.filename,
+        file_type=ext,
+        content=text,
+        search_vector=func.to_tsvector('english', text)
+    )
+    db.add(new_doc)
+    db.commit()
+    db.refresh(new_doc)
+
+    chunks = chunks_text(text)
+    embeddings = generate_embedding_batch(chunks)
+
+    # Handle multiple chunks just in case text string is large
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        chunk_obj = DocumentChunk(
+            document_id=new_doc.id,
+            chunk_text=chunk,
+            chunk_index=i,
+            embedding=embedding,
+            ocr_confidence=avg_conf,
+            image_path=file_path
+        )
+        db.add(chunk_obj)
+        
+    db.commit()
+
+    return {
+        "document_id": new_doc.id,
+        "filename": file.filename,
+        "message": "Image processed",
+        "confidence": avg_conf,
+        "chunks": len(chunks)
+    }
+
 
 
 

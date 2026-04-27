@@ -1,3 +1,5 @@
+from dns import query
+
 from app.services.embeddings import generate_embedding
 from app.services.llm_service import ask_question, detect_query_type, generate_message, stream_response
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,7 +14,18 @@ router = APIRouter()
 
 @router.post("/llm/ask")
 def get_llm_message(question: str):
-   answer = generate_message(question)
+   query_type = detect_query_type(query)
+
+   if query_type == "comparison":
+       prompt = comparison_prompt(query)
+
+   elif query_type == "summary":
+       prompt = summary_prompt(query)
+
+   else:
+       prompt = factual_prompt(query)
+    
+   answer = generate_message(prompt)
    return {
       "question": question,
       "answer": answer
