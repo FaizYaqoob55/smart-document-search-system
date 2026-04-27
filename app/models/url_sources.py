@@ -1,5 +1,4 @@
-from sqlalchemy import Column, DateTime, Integer, String, Text
-from sqlalchemy import func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from app.database import Base
 
 
@@ -10,3 +9,4 @@ class UrlSources(Base):
     last_scraped_at = Column(DateTime)
     scrape_status=Column(String)
     next_scrape_at = Column(DateTime)
+    document_id = Column(Integer, ForeignKey("documents.id"))

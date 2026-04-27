@@ -1,9 +1,12 @@
+from typing import List, Optional
+
 from app.database import get_db
 from app.models.document import Document
 from app.models.document_chunks import DocumentChunk
 from app.models.url_sources import UrlSources
 from app.services.create_session_chat import create_session, get_history, save_message, load_session
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field, HttpUrl
 from app.services.llm_service import ask_question
 from sqlalchemy.orm import Session
 import app.database as db
@@ -22,78 +25,49 @@ from app.services.scrapper_services import ingest_url_pipeline
 router = APIRouter()
 
 
-# @router.post("/document/ingest/url")
-# def ingest_url(data: dict, db: Session = Depends(get_db)):
-#     url = data["url"]
-#     scrapped = scrapped_url(url)
-#     content = scrapped["content"]
-#     title = scrapped.get("title") or "Untitled"
+class URLIngestRequest(BaseModel):
+    url: HttpUrl
+    title: Optional[str] = None
 
-#     doc = Document(title=title, content=content, source_url=url)
-#     db.add(doc)
-#     db.commit()
-#     db.refresh(doc)
 
-#     chunks = chunks_text(content)
-#     embeddings =generate_embeddings_batch(chunks)
-#     for i, chunk in enumerate(chunks):
-#         chunk_doc = chunk_data.append({"document_id": doc.id, "content": chunk, "chunk_index": i, "embedding": embeddings[i]})
-#         db.bulk_insert_mappings(DocumentChunk, chunk_data)
-#     db.commit()
-#     return {"message": "URL ingested successfully", "document_id": doc.id}
+class URLsIngestRequest(BaseModel):
+    urls: List[HttpUrl] = Field(alias="url")
+
+
+
+
+
+
+
+
+
+
 
 
 
 @router.get("/document/ingest/urls")
 def get_urls(db: Session = Depends(get_db)):
-    urls = db.query(UrlSources).all()
+    urls = db.query(UrlSources).all() 
     return {"urls": urls}
-
-
-
-# @router.post("/document/ingest/urls/{id}refresh")
-# def refresh_url(id: int, db: Session = Depends(get_db)):
-#     url_entry = db.query(UrlSources).filter(UrlSources.id == id).first()
-#     if not url_entry:
-#         raise HTTPException(status_code=404, detail="URL entry not found")
-#     scrapped = scrapped_url(url_entry.url)
-#     content = scrapped["content"]
-#     title = scrapped.get("title") or "Untitled"
-
-#     doc = Document(title=title, content=content, source_url=url_entry.url)
-#     db.add(doc)
-#     db.commit()
-#     db.refresh(doc)
-
-#     chunks = chunks_text(content)
-#     embeddings =generate_embeddings_batch(chunks)
-#     chunk_data = []
-#     for i, chunk in enumerate(chunks):
-#         chunk_data.append({"document_id": doc.id, "content": chunk, "chunk_index": i, "embedding": embeddings[i]})
-#         db.bulk_insert_mappings(DocumentChunk, chunk_data)
-#     db.commit()
-#     return {"message": "URL refreshed successfully", "document_id": doc.id}
-
-
-
 
 
 
 @router.post("/documents/ingest/url")
 def ingest_url(
-    data: dict,
+    data: URLIngestRequest,
     db: Session = Depends(get_db)
 ):
 
-    url = data["url"]
+    url = str(data.url)
 
-    title = data.get("title")
-
-    doc = ingest_url_pipeline(
-        url,
-        db,
-        title
-    )
+    try:
+        doc = ingest_url_pipeline(
+            url,
+            db,
+            data.title
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     return {
         "message": "URL indexed successfully",
@@ -101,28 +75,32 @@ def ingest_url(
     }
 
 
-
 @router.post("/documents/ingest/urls")
 def ingest_urls(
-    data: dict,
+    data: URLsIngestRequest,
     db: Session = Depends(get_db)
 ):
 
-    urls = data["urls"]
-
     results = []
 
-    for url in urls:
+    for url_obj in data.urls:
+        url = str(url_obj)
 
-        doc = ingest_url_pipeline(
-            url,
-            db
-        )
+        try:
+            doc = ingest_url_pipeline(
+                url,
+                db
+            )
+            results.append({
+                "url": url,
+                "document_id": doc.id
+            })
+        except ValueError as exc:
+            results.append({
+                "url": url,
+                "error": str(exc)
+            })
 
-        results.append({
-            "url": url,
-            "document_id": doc.id
-        })
 
     return {
         "message": "Bulk URLs indexed",

@@ -10,25 +10,30 @@ from app.services.prompt_templates import comparison_prompt, factual_prompt, sum
 from app.models.document_chunks import DocumentChunk
 from app.models.document import Document
 from sqlalchemy import Float
+from app.services.llm_service import client
 router = APIRouter()
 
 @router.post("/llm/ask")
 def get_llm_message(question: str):
-   query_type = detect_query_type(query)
+    response = client.chat.completions.create(
+        model='llama-3.1-8b-instant',
+        messages=[{"role": "user", "content": question}]
+    )
+    query_type = detect_query_type(question)
 
-   if query_type == "comparison":
-       prompt = comparison_prompt(query)
+    if query_type == "comparison":
+       prompt = comparison_prompt(question)
 
-   elif query_type == "summary":
-       prompt = summary_prompt(query)
+    elif query_type == "summary":
+       prompt = summary_prompt(question)
 
-   else:
-       prompt = factual_prompt(query)
+    else:
+       prompt = factual_prompt(question)
     
-   answer = generate_message(prompt)
-   return {
+    answer = response.choices[0].message.content
+    return {
       "question": question,
-      "answer": answer
+      "answer": answer,
       }
 
 
@@ -115,4 +120,5 @@ def stream_rag(query: str, db: Session = Depends(get_db)):
     return StreamingResponse(
         stream_response(prompt),
         media_type="text/plain"
+        
     )

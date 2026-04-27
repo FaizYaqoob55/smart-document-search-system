@@ -1,6 +1,7 @@
 import re
 from bs4 import BeautifulSoup
 import httpx
+import requests
 
 from app.database import SessionLocal
 from app.services.text_extractor import chunks_text
@@ -33,10 +34,17 @@ def scrape_url(url: str):
         # STEP 1 → fetch page
         response = httpx.get(
             url,
-            headers=HEADERS,
+            headers={**HEADERS, "Referer": url},
             follow_redirects=True,
             timeout=30
         )
+
+        if response.status_code == 403:
+            response = requests.get(
+                url,
+                headers={**HEADERS, "Referer": url},
+                timeout=30
+            )
 
         if response.status_code != 200:
             return {
@@ -160,9 +168,15 @@ def ingest_url_pipeline(
 
     scraped = scrape_url(url)
 
-    content = scraped["content"]
+    if not scraped or scraped.get("error"):
+        error_message = scraped.get("error") if scraped else "Unknown scraping error"
+        raise ValueError(f"Failed to scrape URL '{url}': {error_message}")
 
-    title = custom_title or scraped["title"]
+    content = scraped.get("content", "")
+    if not content:
+        raise ValueError(f"No content was extracted from URL '{url}'")
+
+    title = custom_title or scraped.get("title")
 
     chunks = chunks_text(content)
 
@@ -274,5 +288,5 @@ def auto_refresh_urls():
 scheduler.add_job(
     auto_refresh_urls,
     "interval",
-    hours=24
+    hours=24,
 )
