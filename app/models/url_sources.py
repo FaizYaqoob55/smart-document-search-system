@@ -9,4 +9,3 @@ class UrlSources(Base):
     last_scraped_at = Column(DateTime)
     scrape_status=Column(String)
     next_scrape_at = Column(DateTime)
-    document_id = Column(Integer, ForeignKey("documents.id"))
