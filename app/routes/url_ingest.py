@@ -4,7 +4,6 @@ from app.database import get_db
 from app.models.document import Document
 from app.models.document_chunks import DocumentChunk
 from app.models.url_sources import UrlSources
-from app.services.create_session_chat import create_session, get_history, save_message, load_session
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 from app.services.llm_service import ask_question
@@ -13,13 +12,6 @@ import app.database as db
 from app.services.llm_service import client
 from app.services.create_session_chat import r
 from app.services.scrapper_services import ingest_url_pipeline
-
-
-
-
-
-
-
 
 
 router = APIRouter()
@@ -47,8 +39,21 @@ class URLsIngestRequest(BaseModel):
 
 @router.get("/document/ingest/urls")
 def get_urls(db: Session = Depends(get_db)):
-    urls = db.query(UrlSources).all() 
-    return {"urls": urls}
+    urls = db.query(UrlSources).all()
+    results = []
+
+    for u in urls:
+        document = db.query(Document).filter(Document.source_url == u.url).first()
+        results.append({
+            "urls": u.url,
+            "id": u.id,
+            "document_id": document.id if document else None,
+            "last_scraped_at": u.last_scraped_at,
+            "scrape_status": u.scrape_status,
+            "next_scrape_at": u.next_scrape_at,
+        })
+
+    return results
 
 
 

@@ -281,11 +281,11 @@ def auto_refresh_urls():
             )
 
     finally:
-
+ 
         db.close()
 
 
-scheduler.add_job(
+scheduler.add_job(   
     auto_refresh_urls,
     "interval",
     hours=24,

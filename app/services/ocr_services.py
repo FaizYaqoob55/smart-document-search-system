@@ -1,7 +1,7 @@
 import pytesseract
 from PIL import Image, ImageFilter
 from pdf2image import convert_from_path
-import PyPDF2
+import pypdf 
 import os
 
 
@@ -78,7 +78,7 @@ def extract_text_from_scanned_pdf(pdf_path):
 def is_scanned_pdf(pdf_path):
     try:
         with open(pdf_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
+            reader = pypdf.PdfReader(file)
             text = ""
         for page in reader.pages:
             text += page.extract_text()or ""
