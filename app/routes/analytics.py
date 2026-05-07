@@ -6,7 +6,7 @@ from app.models.search_history import SearchHistory
 
 router = APIRouter()
 
-@router.get("/popular-searches/")
+@router.get("/popular-searches/", summary="Get Popular Searches", description="Retrieve the top 10 most frequent search queries.")
 def popular_searches(db: Session = Depends(get_db)):
     history = db.query(SearchHistory.__table__.c.query, func.count(SearchHistory.id).label("count")
                         ).group_by(SearchHistory.__table__.c.query).order_by(func.count(SearchHistory.id).desc()).limit(10).all()
@@ -14,7 +14,7 @@ def popular_searches(db: Session = Depends(get_db)):
 
 
 
-@router.get("/search-trends/")
+@router.get("/search-trends/", summary="Get Search Trends", description="Retrieve the daily volume of searches for the last 30 days to observe trends over time.")
 def search_trends(db: Session = Depends(get_db)):
     # 1. Query bilkul sahi hai, ye daily data group kar rahi hai
     history = db.query(

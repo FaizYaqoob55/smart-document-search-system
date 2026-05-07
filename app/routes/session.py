@@ -12,13 +12,13 @@ from app.services.create_session_chat import r
 router = APIRouter()
 
 
-@router.post("/chat/session")
+@router.post("/chat/session", summary="Create Chat Session", description="Initializes a new chat session in Redis and returns the session ID.")
 def create_chat_session():
     session_id = create_session()
     return {"session_id": session_id}
 
 
-@router.get("/chat/sessions/{session_id}/history")
+@router.get("/chat/sessions/{session_id}/history", summary="Get Chat History", description="Retrieve the conversation history for a given chat session.")
 def get_chat_history(session_id: str):
     history = get_history(session_id)
     if history is None:
@@ -29,7 +29,7 @@ def get_chat_history(session_id: str):
 
 
 
-@router.delete("/chat/sessions/{session_id}")
+@router.delete("/chat/sessions/{session_id}", summary="Delete Chat Session", description="Deletes a chat session from Redis.")
 def delete_chat_session(session_id: str):
     r.delete(f"session:{session_id}")
     return {"detail": "Session deleted"}
@@ -38,7 +38,7 @@ def delete_chat_session(session_id: str):
 
 
 
-@router.get("/chat/sessions")
+@router.get("/chat/sessions", summary="List All Sessions", description="List all active chat session IDs.")
 def list_chat_sessions():
     keys = r.keys("session:*")
     sessions = [key.split(":")[1] for key in keys]
@@ -46,7 +46,7 @@ def list_chat_sessions():
 
 
 
-@router.post("/chat/sessions/{session_id}/message")
+@router.post("/chat/sessions/{session_id}/message", summary="Send Chat Message", description="Sends a message within a chat session. Uses RAG to find relevant document context and LLM to generate a response.")
 def chat(session_id: str, query: str, db: Session = Depends(get_db)):
 
     session_data = load_session(session_id)
@@ -86,7 +86,7 @@ def chat(session_id: str, query: str, db: Session = Depends(get_db)):
 
 
 
-@router.post("/chat/sessions/{session_id}/new-topic")
+@router.post("/chat/sessions/{session_id}/new-topic", summary="Start New Topic", description="Clears the conversational context of an existing chat session while keeping the session active.")
 def new_topic(session_id: str):
     raw = r.get(f"session:{session_id}")
     if not raw:
@@ -106,7 +106,7 @@ def new_topic(session_id: str):
 
 from fastapi.responses import Response
 
-@router.get("/chat/sessions/{session_id}/export")
+@router.get("/chat/sessions/{session_id}/export", summary="Export Chat Session", description="Exports the full chat history as a downloadable text file.")
 def export_chat(session_id: str):
     raw = r.get(f"session:{session_id}")
     if not raw:
