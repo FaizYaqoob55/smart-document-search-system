@@ -15,14 +15,16 @@ from app.models.document_chunks import DocumentChunk
 from app.services.embeddings import generate_embedding_batch
 import threading
 from app.services.ocr_services import is_scanned_pdf,extract_text_from_scanned_pdf, extract_text_from_image, extract_text_from_tiff
+import time
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
  
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-import time 
 # --- BACKGROUND WORKER ---
 def process_full_document_background(doc_id: int, file_path: str, ext: str):
     """Heavy processing: Extraction -> Chunking -> Embeddings"""
@@ -49,17 +51,8 @@ def process_full_document_background(doc_id: int, file_path: str, ext: str):
             avg_conf = None
 
         if not text or not text.strip():
-            print(f"✗ Error: Document {doc_id} extracted text is empty.")
-            return
-
-
-
-
-
-
-
-
-        # 2. Document Table Update (Original Text & Search Vector)
+            logger.error(f"Error: Document {doc_id} extracted text is empty.")
+            return        # 2. Document Table Update (Original Text & Search Vector)
         doc = db.query(Document).filter(Document.id == doc_id).first()
         if doc:
             doc.content = text
@@ -88,11 +81,10 @@ def process_full_document_background(doc_id: int, file_path: str, ext: str):
         db.commit()
 
 
-        
-        print(f"✅ Background Success: Document {doc_id} processed ({len(chunks)} chunks).")
+        logger.info(f"Background Success: Document {doc_id} processed ({len(chunks)} chunks).")
 
     except Exception as e:
-        print(f"✗ Background Critical Error: {str(e)}")
+        logger.error(f"Background Critical Error: {str(e)}")
         db.rollback()
     finally:
         db.close()
@@ -106,7 +98,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@router.post("/upload/")
+@router.post("/upload/", summary="Upload Document", description="Uploads a document (PDF, DOCX, TXT) to Supabase and local storage, and initiates background processing for text extraction and vector embeddings.")
 async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
         filename = file.filename
@@ -155,12 +147,12 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Upload Error: {str(e)}")
+        logger.error(f"Upload Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 
 
-@router.post("/documents/upload/image")
+@router.post("/documents/upload/image", summary="Upload Image for OCR", description="Uploads an image file (JPG, PNG, TIFF) to extract text using Tesseract OCR and generates vector embeddings for semantic search.")
 async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
     ext = file.filename.split(".")[-1].lower()
@@ -219,13 +211,13 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
 
 
 
-@router.get("/")
+@router.get("/", summary="Get All Documents", description="Retrieve a paginated list of uploaded documents.")
 def get_documents(skip:int=0,limit:int=10,db:Session=Depends(get_db)):
     documents=db.query(Document).offset(skip).limit(limit).all()
     return documents 
 
 
-@router.get("/{document_id}")
+@router.get("/{document_id}", summary="Get Document by ID", description="Retrieve details of a specific document by its ID.")
 def get_document(document_id:int,db:Session=Depends(get_db)):
     document=db.query(Document).filter(Document.id==document_id).first()
     if not document:
@@ -250,7 +242,7 @@ def get_embedding_status(document_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/{id}/chunks")
+@router.get("/{id}/chunks", summary="Get Document Chunks", description="Retrieve all text chunks and their indices for a specific document.")
 def get_document_chunks(id:int,db:Session=Depends(get_db)):
     chunks=db.query(DocumentChunk).filter(DocumentChunk.document_id==id).all()
     if not chunks:
@@ -304,7 +296,7 @@ def get_document_chunks(id:int,db:Session=Depends(get_db)):
 
 
 
-@router.delete("/{document_id}")
+@router.delete("/{document_id}", summary="Delete Document", description="Deletes a document and all its associated vector chunks from the database.")
 def delete_document(document_id: int, db: Session = Depends(get_db)):
     # 1. Check karein ke document exist karta hai ya nahi
     document = db.query(Document).filter(Document.id == document_id).first()
@@ -323,7 +315,8 @@ def delete_document(document_id: int, db: Session = Depends(get_db)):
     
     except Exception as e:
         db.rollback()
-        print(f"Error during deletion: {str(e)}")
+        logger.error(f"Error during deletion: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during deletion.")
 
 @router.put("/{document_id}")
 def update_document(document_id:int, content:str=None, db:Session=Depends(get_db)):

@@ -9,7 +9,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.get("/semantic")
+@router.get("/semantic", summary="Semantic Search", description="Performs AI-based semantic search to find meaning-related content across all indexed documents.")
 def semantic_search(query: str, file_type: str = Query(None), date_from: str = Query(None), date_to: str = Query(None), db: Session = Depends(get_db)):
     query_embedding = generate_embedding(query)
 
@@ -67,7 +67,7 @@ def semantic_search(query: str, file_type: str = Query(None), date_from: str = Q
              for row in result]
 
     
-@router.get("/keyword")
+@router.get("/keyword", summary="Keyword Search", description="Performs exact keyword search using PostgreSQL full-text search capabilities.")
 def keyword_search(query: str, db: Session = Depends(get_db)):
     results=db.query(Document.id, Document.title, func.ts_rank(
         Document.search_vector, func.plainto_tsquery(query)).label("score")).filter(
@@ -88,7 +88,7 @@ def keyword_search(query: str, db: Session = Depends(get_db)):
 
 
 
-@router.get("/hybrid")
+@router.get("/hybrid", summary="Hybrid Search", description="Combines Semantic and Keyword search, returning a blended and ranked result set.")
 def hybrid_search(query: str,db: Session = Depends(get_db)):
     query_embedding = generate_embedding(query)
     semantic_results = db.execute(text("""

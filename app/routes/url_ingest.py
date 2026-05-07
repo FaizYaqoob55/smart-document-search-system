@@ -37,7 +37,7 @@ class URLsIngestRequest(BaseModel):
 
 
 
-@router.get("/document/ingest/urls")
+@router.get("/document/ingest/urls", summary="Get Ingested URLs", description="Retrieve a list of all URLs that have been ingested or queued for scraping.")
 def get_urls(db: Session = Depends(get_db)):
     urls = db.query(UrlSources).all()
     results = []
@@ -57,7 +57,7 @@ def get_urls(db: Session = Depends(get_db)):
 
 
 
-@router.post("/documents/ingest/url")
+@router.post("/documents/ingest/url", summary="Ingest Single URL", description="Scrapes a single URL and ingests its content into the vector database.")
 def ingest_url(
     data: URLIngestRequest,
     db: Session = Depends(get_db)
@@ -80,7 +80,7 @@ def ingest_url(
     }
 
 
-@router.post("/documents/ingest/urls")
+@router.post("/documents/ingest/urls", summary="Bulk Ingest URLs", description="Scrapes and ingests multiple URLs in a single request.")
 def ingest_urls(
     data: URLsIngestRequest,
     db: Session = Depends(get_db)
@@ -116,7 +116,9 @@ def ingest_urls(
 
 
 @router.post(
-    "/documents/sources/urls/{id}/refresh"
+    "/documents/sources/urls/{id}/refresh",
+    summary="Refresh URL",
+    description="Forces a re-scrape of an already ingested URL to update its content."
 )
 def refresh_url(
     id: int,

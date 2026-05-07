@@ -12,7 +12,7 @@ from app.models.document import Document
 from sqlalchemy import Float
 router = APIRouter()
 
-@router.post("/llm/ask")
+@router.post("/llm/ask", summary="Ask General Question", description="Ask a general question to the LLM without document context.")
 def get_llm_message(question: str):
     
     prompt = generate_message(question)
@@ -22,12 +22,12 @@ def get_llm_message(question: str):
       }
 
 
-@router.post("/rag/ask")
+@router.post("/rag/ask", summary="Ask Question with RAG", description="Ask a question and generate an answer using Retrieval-Augmented Generation (RAG) based on the indexed documents.")
 def rag_ask(question:str,document_id:int=None, db: Session = Depends(get_db)):
    return ask_question(question, db,document_id=document_id)
 
 
-@router.get("/qa_history/{question_id}")
+@router.get("/qa_history/{question_id}", summary="Get QA History", description="Retrieve a specific question and answer interaction by its ID.")
 def get_qa_history(question_id: int, db: Session = Depends(get_db)):
       return db.query(QaHistory).filter(QaHistory.id == question_id).first()
 
@@ -69,7 +69,7 @@ from fastapi.responses import StreamingResponse
 
 
 
-@router.get("/rag/ask/stream")
+@router.get("/rag/ask/stream", summary="Stream RAG Answer", description="Stream the response of a RAG-based query in real-time.")
 def stream_rag(query: str, db: Session = Depends(get_db)):
 
     # :fire: STEP 1: SAME RAG RETRIEVAL

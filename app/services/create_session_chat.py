@@ -45,7 +45,7 @@ def save_message(session_id, role, content):
     if isinstance(data, list):
         history = data
         data = {"history": history}
-    else:
+    else:      
         history = data.get("history", [])
 
     history.append({"role": role, "content": content})

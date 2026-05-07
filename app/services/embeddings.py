@@ -10,7 +10,7 @@ def _get_model():
     if _model is None:
         _model = SentenceTransformer('all-MiniLM-L6-v2')
     return _model
-
+ 
 
 def generate_embeddings(texts):
     model = _get_model()
